@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-
 	server := echo.New()
 	server.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "${method} ${uri} => ${status}\n",

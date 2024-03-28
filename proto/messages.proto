@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option go_package = "pb/";
+
+// TYPES
+
+enum SendType {
+    Type_Draw = 0;
+    Type_DrawFolded = 1;
+    Type_Fold = 2;
+    Type_PlaySet = 3;
+    Type_PlaySingleCard = 4;
+}
+
+// MODEL
+
+enum Symbol {
+    Clubs = 0;
+    Diamonds = 1;
+    Hearts = 2;
+    Spades = 3;
+}
+
+message Card {
+    int32 value = 1;
+    Symbol symbol = 2;
+    optional string owner = 3;
+}
+
+message Set {
+    repeated Card cards = 1;
+}
+
+message HiddenSet {
+    int32 numOfCards = 1;
+}
+
+message Player {
+    string name = 1;
+    Set handSet = 2;
+    repeated Set cardSets = 3;
+}
+
+message OtherPlayer {
+    string name = 1;
+    HiddenSet handSet = 2;
+    repeated Set cardSets = 3;
+}
+
+// SEND
+
+message Draw {}
+
+message DrawFolded {
+    int32 numOfCards = 1;
+}
+
+message Fold {
+    Card card = 1;
+}
+
+message PlaySet {
+    Set cards = 1;
+}
+
+message PlaySingleCard {
+    string name = 1;
+    int32 numOfSet = 2;
+    Card card = 3;
+    optional bool jokerOnLow = 4;
+}
+
+// RECIEVE
+
+message Update {
+    HiddenSet drawSet = 1;
+    Set foldSet = 2;
+    Player player = 3;
+    map<string, OtherPlayer> otherPlayers = 4;
+}
