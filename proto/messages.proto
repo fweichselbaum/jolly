@@ -4,12 +4,12 @@ option go_package = "pb/";
 
 // TYPES
 
-enum SendType {
-    Type_Draw = 0;
-    Type_DrawFolded = 1;
-    Type_Fold = 2;
-    Type_PlaySet = 3;
-    Type_PlaySingleCard = 4;
+enum Actions {
+    Action_Draw = 0;
+    Action_DrawFolded = 1;
+    Action_Fold = 2;
+    Action_PlaySet = 3;
+    Action_PlaySingleCard = 4;
 }
 
 // MODEL
@@ -35,19 +35,27 @@ message HiddenSet {
     int32 numOfCards = 1;
 }
 
-message Player {
-    string name = 1;
-    Set handSet = 2;
-    repeated Set cardSets = 3;
+message PlayerInfo {
+    HiddenSet handSet = 1;
+    repeated Set playedSets = 2;
+
 }
 
-message OtherPlayer {
-    string name = 1;
-    HiddenSet handSet = 2;
-    repeated Set cardSets = 3;
+// ACTIONS
+
+message Action {
+    string player = 1;
+    oneof action {
+        Start start = 2;
+        Draw draw = 3;
+        DrawFolded drawFolded = 4;
+        Fold fold = 5;
+        PlaySet playSet = 6;
+        PlaySingleCard playSingleCard = 7;
+    }
 }
 
-// SEND
+message Start {}
 
 message Draw {}
 
@@ -70,11 +78,12 @@ message PlaySingleCard {
     optional bool jokerOnLow = 4;
 }
 
-// RECIEVE
+// UPDATE
 
 message Update {
     HiddenSet drawSet = 1;
     Set foldSet = 2;
-    Player player = 3;
-    map<string, OtherPlayer> otherPlayers = 4;
+    Set handSet = 3;
+    map<string, PlayerInfo> playerInfos = 4;
+    optional string currentPlayer = 5;
 }

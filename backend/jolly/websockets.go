@@ -1,7 +1,6 @@
 package jolly
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -31,25 +30,9 @@ func (client *Client) ReadLoop() {
 		if err != nil {
 			break
 		}
-
-		var msg Message
-		err = json.Unmarshal(bytes, &msg)
-		if err != nil {
-			break
-		}
-
-		switch msg.MsgType {
-		case "state": // TODO
-		case "control":
-			data := msg.Data.(string)
-			if data == "start" {
-				client.Handler.State.Start()
-			}
-		}
-
-		client.Handler.Broadcast <- &Message{
-			MsgType: "state",
-			Data:    client.Handler.State,
+		client.Handler.HandleMsg <- &Message{
+			player:  client.Name,
+			content: bytes,
 		}
 	}
 }
@@ -69,11 +52,8 @@ func (client *Client) WriteLoop() {
 				return
 			} else {
 				client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-				json, err := json.Marshal(msg)
-				if err != nil {
-					break
-				}
-				err = client.Conn.WriteMessage(websocket.TextMessage, json)
+
+				err := client.Conn.WriteMessage(websocket.BinaryMessage, msg)
 				if err != nil {
 					break
 				}

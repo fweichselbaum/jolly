@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Game from "$lib/Game.svelte";
-	import ThemeSwitcher from "$lib/ThemeSwitcher.svelte";
-	import { Toaster } from "svelte-french-toast";
+    import ThemeSwitcher from "$lib/ThemeSwitcher.svelte";
+    import { Toaster } from "svelte-french-toast";
 
+		
 	let name = $state("");
 	let joined = $state(false);
 </script>

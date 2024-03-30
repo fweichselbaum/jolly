@@ -3,52 +3,52 @@ import * as _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "";
 
-export enum SendType {
-  Type_Draw = 0,
-  Type_DrawFolded = 1,
-  Type_Fold = 2,
-  Type_PlaySet = 3,
-  Type_PlaySingleCard = 4,
+export enum Actions {
+  Action_Draw = 0,
+  Action_DrawFolded = 1,
+  Action_Fold = 2,
+  Action_PlaySet = 3,
+  Action_PlaySingleCard = 4,
   UNRECOGNIZED = -1,
 }
 
-export function sendTypeFromJSON(object: any): SendType {
+export function actionsFromJSON(object: any): Actions {
   switch (object) {
     case 0:
-    case "Type_Draw":
-      return SendType.Type_Draw;
+    case "Action_Draw":
+      return Actions.Action_Draw;
     case 1:
-    case "Type_DrawFolded":
-      return SendType.Type_DrawFolded;
+    case "Action_DrawFolded":
+      return Actions.Action_DrawFolded;
     case 2:
-    case "Type_Fold":
-      return SendType.Type_Fold;
+    case "Action_Fold":
+      return Actions.Action_Fold;
     case 3:
-    case "Type_PlaySet":
-      return SendType.Type_PlaySet;
+    case "Action_PlaySet":
+      return Actions.Action_PlaySet;
     case 4:
-    case "Type_PlaySingleCard":
-      return SendType.Type_PlaySingleCard;
+    case "Action_PlaySingleCard":
+      return Actions.Action_PlaySingleCard;
     case -1:
     case "UNRECOGNIZED":
     default:
-      return SendType.UNRECOGNIZED;
+      return Actions.UNRECOGNIZED;
   }
 }
 
-export function sendTypeToJSON(object: SendType): string {
+export function actionsToJSON(object: Actions): string {
   switch (object) {
-    case SendType.Type_Draw:
-      return "Type_Draw";
-    case SendType.Type_DrawFolded:
-      return "Type_DrawFolded";
-    case SendType.Type_Fold:
-      return "Type_Fold";
-    case SendType.Type_PlaySet:
-      return "Type_PlaySet";
-    case SendType.Type_PlaySingleCard:
-      return "Type_PlaySingleCard";
-    case SendType.UNRECOGNIZED:
+    case Actions.Action_Draw:
+      return "Action_Draw";
+    case Actions.Action_DrawFolded:
+      return "Action_DrawFolded";
+    case Actions.Action_Fold:
+      return "Action_Fold";
+    case Actions.Action_PlaySet:
+      return "Action_PlaySet";
+    case Actions.Action_PlaySingleCard:
+      return "Action_PlaySingleCard";
+    case Actions.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
   }
@@ -113,16 +113,22 @@ export interface HiddenSet {
   numOfCards: number;
 }
 
-export interface Player {
-  name: string;
-  handSet: Set | undefined;
-  cardSets: Set[];
+export interface PlayerInfo {
+  handSet: HiddenSet | undefined;
+  playedSets: Set[];
 }
 
-export interface OtherPlayer {
-  name: string;
-  handSet: HiddenSet | undefined;
-  cardSets: Set[];
+export interface Action {
+  player: string;
+  start?: Start | undefined;
+  draw?: Draw | undefined;
+  drawFolded?: DrawFolded | undefined;
+  fold?: Fold | undefined;
+  playSet?: PlaySet | undefined;
+  playSingleCard?: PlaySingleCard | undefined;
+}
+
+export interface Start {
 }
 
 export interface Draw {
@@ -150,13 +156,14 @@ export interface PlaySingleCard {
 export interface Update {
   drawSet: HiddenSet | undefined;
   foldSet: Set | undefined;
-  player: Player | undefined;
-  otherPlayers: { [key: string]: OtherPlayer };
+  handSet: Set | undefined;
+  playerInfos: { [key: string]: PlayerInfo };
+  currentPlayer?: string | undefined;
 }
 
-export interface Update_OtherPlayersEntry {
+export interface Update_PlayerInfosEntry {
   key: string;
-  value: OtherPlayer | undefined;
+  value: PlayerInfo | undefined;
 }
 
 function createBaseCard(): Card {
@@ -362,142 +369,41 @@ export const HiddenSet = {
   },
 };
 
-function createBasePlayer(): Player {
-  return { name: "", handSet: undefined, cardSets: [] };
+function createBasePlayerInfo(): PlayerInfo {
+  return { handSet: undefined, playedSets: [] };
 }
 
-export const Player = {
-  encode(message: Player, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
-    }
+export const PlayerInfo = {
+  encode(message: PlayerInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.handSet !== undefined) {
-      Set.encode(message.handSet, writer.uint32(18).fork()).ldelim();
+      HiddenSet.encode(message.handSet, writer.uint32(10).fork()).ldelim();
     }
-    for (const v of message.cardSets) {
-      Set.encode(v!, writer.uint32(26).fork()).ldelim();
+    for (const v of message.playedSets) {
+      Set.encode(v!, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): Player {
+  decode(input: _m0.Reader | Uint8Array, length?: number): PlayerInfo {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePlayer();
+    const message = createBasePlayerInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
           if (tag !== 10) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        case 2:
-          if (tag !== 18) {
-            break;
-          }
-
-          message.handSet = Set.decode(reader, reader.uint32());
-          continue;
-        case 3:
-          if (tag !== 26) {
-            break;
-          }
-
-          message.cardSets.push(Set.decode(reader, reader.uint32()));
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): Player {
-    return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      handSet: isSet(object.handSet) ? Set.fromJSON(object.handSet) : undefined,
-      cardSets: globalThis.Array.isArray(object?.cardSets) ? object.cardSets.map((e: any) => Set.fromJSON(e)) : [],
-    };
-  },
-
-  toJSON(message: Player): unknown {
-    const obj: any = {};
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.handSet !== undefined) {
-      obj.handSet = Set.toJSON(message.handSet);
-    }
-    if (message.cardSets?.length) {
-      obj.cardSets = message.cardSets.map((e) => Set.toJSON(e));
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<Player>, I>>(base?: I): Player {
-    return Player.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Player>, I>>(object: I): Player {
-    const message = createBasePlayer();
-    message.name = object.name ?? "";
-    message.handSet = (object.handSet !== undefined && object.handSet !== null)
-      ? Set.fromPartial(object.handSet)
-      : undefined;
-    message.cardSets = object.cardSets?.map((e) => Set.fromPartial(e)) || [];
-    return message;
-  },
-};
-
-function createBaseOtherPlayer(): OtherPlayer {
-  return { name: "", handSet: undefined, cardSets: [] };
-}
-
-export const OtherPlayer = {
-  encode(message: OtherPlayer, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.name !== "") {
-      writer.uint32(10).string(message.name);
-    }
-    if (message.handSet !== undefined) {
-      HiddenSet.encode(message.handSet, writer.uint32(18).fork()).ldelim();
-    }
-    for (const v of message.cardSets) {
-      Set.encode(v!, writer.uint32(26).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): OtherPlayer {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOtherPlayer();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.name = reader.string();
-          continue;
-        case 2:
-          if (tag !== 18) {
             break;
           }
 
           message.handSet = HiddenSet.decode(reader, reader.uint32());
           continue;
-        case 3:
-          if (tag !== 26) {
+        case 2:
+          if (tag !== 18) {
             break;
           }
 
-          message.cardSets.push(Set.decode(reader, reader.uint32()));
+          message.playedSets.push(Set.decode(reader, reader.uint32()));
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -508,38 +414,241 @@ export const OtherPlayer = {
     return message;
   },
 
-  fromJSON(object: any): OtherPlayer {
+  fromJSON(object: any): PlayerInfo {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
       handSet: isSet(object.handSet) ? HiddenSet.fromJSON(object.handSet) : undefined,
-      cardSets: globalThis.Array.isArray(object?.cardSets) ? object.cardSets.map((e: any) => Set.fromJSON(e)) : [],
+      playedSets: globalThis.Array.isArray(object?.playedSets)
+        ? object.playedSets.map((e: any) => Set.fromJSON(e))
+        : [],
     };
   },
 
-  toJSON(message: OtherPlayer): unknown {
+  toJSON(message: PlayerInfo): unknown {
     const obj: any = {};
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
     if (message.handSet !== undefined) {
       obj.handSet = HiddenSet.toJSON(message.handSet);
     }
-    if (message.cardSets?.length) {
-      obj.cardSets = message.cardSets.map((e) => Set.toJSON(e));
+    if (message.playedSets?.length) {
+      obj.playedSets = message.playedSets.map((e) => Set.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<OtherPlayer>, I>>(base?: I): OtherPlayer {
-    return OtherPlayer.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<PlayerInfo>, I>>(base?: I): PlayerInfo {
+    return PlayerInfo.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<OtherPlayer>, I>>(object: I): OtherPlayer {
-    const message = createBaseOtherPlayer();
-    message.name = object.name ?? "";
+  fromPartial<I extends Exact<DeepPartial<PlayerInfo>, I>>(object: I): PlayerInfo {
+    const message = createBasePlayerInfo();
     message.handSet = (object.handSet !== undefined && object.handSet !== null)
       ? HiddenSet.fromPartial(object.handSet)
       : undefined;
-    message.cardSets = object.cardSets?.map((e) => Set.fromPartial(e)) || [];
+    message.playedSets = object.playedSets?.map((e) => Set.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseAction(): Action {
+  return {
+    player: "",
+    start: undefined,
+    draw: undefined,
+    drawFolded: undefined,
+    fold: undefined,
+    playSet: undefined,
+    playSingleCard: undefined,
+  };
+}
+
+export const Action = {
+  encode(message: Action, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.player !== "") {
+      writer.uint32(10).string(message.player);
+    }
+    if (message.start !== undefined) {
+      Start.encode(message.start, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.draw !== undefined) {
+      Draw.encode(message.draw, writer.uint32(26).fork()).ldelim();
+    }
+    if (message.drawFolded !== undefined) {
+      DrawFolded.encode(message.drawFolded, writer.uint32(34).fork()).ldelim();
+    }
+    if (message.fold !== undefined) {
+      Fold.encode(message.fold, writer.uint32(42).fork()).ldelim();
+    }
+    if (message.playSet !== undefined) {
+      PlaySet.encode(message.playSet, writer.uint32(50).fork()).ldelim();
+    }
+    if (message.playSingleCard !== undefined) {
+      PlaySingleCard.encode(message.playSingleCard, writer.uint32(58).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Action {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAction();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.player = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.start = Start.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.draw = Draw.decode(reader, reader.uint32());
+          continue;
+        case 4:
+          if (tag !== 34) {
+            break;
+          }
+
+          message.drawFolded = DrawFolded.decode(reader, reader.uint32());
+          continue;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.fold = Fold.decode(reader, reader.uint32());
+          continue;
+        case 6:
+          if (tag !== 50) {
+            break;
+          }
+
+          message.playSet = PlaySet.decode(reader, reader.uint32());
+          continue;
+        case 7:
+          if (tag !== 58) {
+            break;
+          }
+
+          message.playSingleCard = PlaySingleCard.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Action {
+    return {
+      player: isSet(object.player) ? globalThis.String(object.player) : "",
+      start: isSet(object.start) ? Start.fromJSON(object.start) : undefined,
+      draw: isSet(object.draw) ? Draw.fromJSON(object.draw) : undefined,
+      drawFolded: isSet(object.drawFolded) ? DrawFolded.fromJSON(object.drawFolded) : undefined,
+      fold: isSet(object.fold) ? Fold.fromJSON(object.fold) : undefined,
+      playSet: isSet(object.playSet) ? PlaySet.fromJSON(object.playSet) : undefined,
+      playSingleCard: isSet(object.playSingleCard) ? PlaySingleCard.fromJSON(object.playSingleCard) : undefined,
+    };
+  },
+
+  toJSON(message: Action): unknown {
+    const obj: any = {};
+    if (message.player !== "") {
+      obj.player = message.player;
+    }
+    if (message.start !== undefined) {
+      obj.start = Start.toJSON(message.start);
+    }
+    if (message.draw !== undefined) {
+      obj.draw = Draw.toJSON(message.draw);
+    }
+    if (message.drawFolded !== undefined) {
+      obj.drawFolded = DrawFolded.toJSON(message.drawFolded);
+    }
+    if (message.fold !== undefined) {
+      obj.fold = Fold.toJSON(message.fold);
+    }
+    if (message.playSet !== undefined) {
+      obj.playSet = PlaySet.toJSON(message.playSet);
+    }
+    if (message.playSingleCard !== undefined) {
+      obj.playSingleCard = PlaySingleCard.toJSON(message.playSingleCard);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Action>, I>>(base?: I): Action {
+    return Action.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Action>, I>>(object: I): Action {
+    const message = createBaseAction();
+    message.player = object.player ?? "";
+    message.start = (object.start !== undefined && object.start !== null) ? Start.fromPartial(object.start) : undefined;
+    message.draw = (object.draw !== undefined && object.draw !== null) ? Draw.fromPartial(object.draw) : undefined;
+    message.drawFolded = (object.drawFolded !== undefined && object.drawFolded !== null)
+      ? DrawFolded.fromPartial(object.drawFolded)
+      : undefined;
+    message.fold = (object.fold !== undefined && object.fold !== null) ? Fold.fromPartial(object.fold) : undefined;
+    message.playSet = (object.playSet !== undefined && object.playSet !== null)
+      ? PlaySet.fromPartial(object.playSet)
+      : undefined;
+    message.playSingleCard = (object.playSingleCard !== undefined && object.playSingleCard !== null)
+      ? PlaySingleCard.fromPartial(object.playSingleCard)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseStart(): Start {
+  return {};
+}
+
+export const Start = {
+  encode(_: Start, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Start {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStart();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): Start {
+    return {};
+  },
+
+  toJSON(_: Start): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Start>, I>>(base?: I): Start {
+    return Start.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Start>, I>>(_: I): Start {
+    const message = createBaseStart();
     return message;
   },
 };
@@ -863,7 +972,7 @@ export const PlaySingleCard = {
 };
 
 function createBaseUpdate(): Update {
-  return { drawSet: undefined, foldSet: undefined, player: undefined, otherPlayers: {} };
+  return { drawSet: undefined, foldSet: undefined, handSet: undefined, playerInfos: {}, currentPlayer: undefined };
 }
 
 export const Update = {
@@ -874,12 +983,15 @@ export const Update = {
     if (message.foldSet !== undefined) {
       Set.encode(message.foldSet, writer.uint32(18).fork()).ldelim();
     }
-    if (message.player !== undefined) {
-      Player.encode(message.player, writer.uint32(26).fork()).ldelim();
+    if (message.handSet !== undefined) {
+      Set.encode(message.handSet, writer.uint32(26).fork()).ldelim();
     }
-    Object.entries(message.otherPlayers).forEach(([key, value]) => {
-      Update_OtherPlayersEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+    Object.entries(message.playerInfos).forEach(([key, value]) => {
+      Update_PlayerInfosEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
     });
+    if (message.currentPlayer !== undefined) {
+      writer.uint32(42).string(message.currentPlayer);
+    }
     return writer;
   },
 
@@ -909,17 +1021,24 @@ export const Update = {
             break;
           }
 
-          message.player = Player.decode(reader, reader.uint32());
+          message.handSet = Set.decode(reader, reader.uint32());
           continue;
         case 4:
           if (tag !== 34) {
             break;
           }
 
-          const entry4 = Update_OtherPlayersEntry.decode(reader, reader.uint32());
+          const entry4 = Update_PlayerInfosEntry.decode(reader, reader.uint32());
           if (entry4.value !== undefined) {
-            message.otherPlayers[entry4.key] = entry4.value;
+            message.playerInfos[entry4.key] = entry4.value;
           }
+          continue;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.currentPlayer = reader.string();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -934,13 +1053,14 @@ export const Update = {
     return {
       drawSet: isSet(object.drawSet) ? HiddenSet.fromJSON(object.drawSet) : undefined,
       foldSet: isSet(object.foldSet) ? Set.fromJSON(object.foldSet) : undefined,
-      player: isSet(object.player) ? Player.fromJSON(object.player) : undefined,
-      otherPlayers: isObject(object.otherPlayers)
-        ? Object.entries(object.otherPlayers).reduce<{ [key: string]: OtherPlayer }>((acc, [key, value]) => {
-          acc[key] = OtherPlayer.fromJSON(value);
+      handSet: isSet(object.handSet) ? Set.fromJSON(object.handSet) : undefined,
+      playerInfos: isObject(object.playerInfos)
+        ? Object.entries(object.playerInfos).reduce<{ [key: string]: PlayerInfo }>((acc, [key, value]) => {
+          acc[key] = PlayerInfo.fromJSON(value);
           return acc;
         }, {})
         : {},
+      currentPlayer: isSet(object.currentPlayer) ? globalThis.String(object.currentPlayer) : undefined,
     };
   },
 
@@ -952,17 +1072,20 @@ export const Update = {
     if (message.foldSet !== undefined) {
       obj.foldSet = Set.toJSON(message.foldSet);
     }
-    if (message.player !== undefined) {
-      obj.player = Player.toJSON(message.player);
+    if (message.handSet !== undefined) {
+      obj.handSet = Set.toJSON(message.handSet);
     }
-    if (message.otherPlayers) {
-      const entries = Object.entries(message.otherPlayers);
+    if (message.playerInfos) {
+      const entries = Object.entries(message.playerInfos);
       if (entries.length > 0) {
-        obj.otherPlayers = {};
+        obj.playerInfos = {};
         entries.forEach(([k, v]) => {
-          obj.otherPlayers[k] = OtherPlayer.toJSON(v);
+          obj.playerInfos[k] = PlayerInfo.toJSON(v);
         });
       }
+    }
+    if (message.currentPlayer !== undefined) {
+      obj.currentPlayer = message.currentPlayer;
     }
     return obj;
   },
@@ -978,41 +1101,42 @@ export const Update = {
     message.foldSet = (object.foldSet !== undefined && object.foldSet !== null)
       ? Set.fromPartial(object.foldSet)
       : undefined;
-    message.player = (object.player !== undefined && object.player !== null)
-      ? Player.fromPartial(object.player)
+    message.handSet = (object.handSet !== undefined && object.handSet !== null)
+      ? Set.fromPartial(object.handSet)
       : undefined;
-    message.otherPlayers = Object.entries(object.otherPlayers ?? {}).reduce<{ [key: string]: OtherPlayer }>(
+    message.playerInfos = Object.entries(object.playerInfos ?? {}).reduce<{ [key: string]: PlayerInfo }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
-          acc[key] = OtherPlayer.fromPartial(value);
+          acc[key] = PlayerInfo.fromPartial(value);
         }
         return acc;
       },
       {},
     );
+    message.currentPlayer = object.currentPlayer ?? undefined;
     return message;
   },
 };
 
-function createBaseUpdate_OtherPlayersEntry(): Update_OtherPlayersEntry {
+function createBaseUpdate_PlayerInfosEntry(): Update_PlayerInfosEntry {
   return { key: "", value: undefined };
 }
 
-export const Update_OtherPlayersEntry = {
-  encode(message: Update_OtherPlayersEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const Update_PlayerInfosEntry = {
+  encode(message: Update_PlayerInfosEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
-      OtherPlayer.encode(message.value, writer.uint32(18).fork()).ldelim();
+      PlayerInfo.encode(message.value, writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): Update_OtherPlayersEntry {
+  decode(input: _m0.Reader | Uint8Array, length?: number): Update_PlayerInfosEntry {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUpdate_OtherPlayersEntry();
+    const message = createBaseUpdate_PlayerInfosEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1028,7 +1152,7 @@ export const Update_OtherPlayersEntry = {
             break;
           }
 
-          message.value = OtherPlayer.decode(reader, reader.uint32());
+          message.value = PlayerInfo.decode(reader, reader.uint32());
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -1039,32 +1163,32 @@ export const Update_OtherPlayersEntry = {
     return message;
   },
 
-  fromJSON(object: any): Update_OtherPlayersEntry {
+  fromJSON(object: any): Update_PlayerInfosEntry {
     return {
       key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? OtherPlayer.fromJSON(object.value) : undefined,
+      value: isSet(object.value) ? PlayerInfo.fromJSON(object.value) : undefined,
     };
   },
 
-  toJSON(message: Update_OtherPlayersEntry): unknown {
+  toJSON(message: Update_PlayerInfosEntry): unknown {
     const obj: any = {};
     if (message.key !== "") {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
-      obj.value = OtherPlayer.toJSON(message.value);
+      obj.value = PlayerInfo.toJSON(message.value);
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Update_OtherPlayersEntry>, I>>(base?: I): Update_OtherPlayersEntry {
-    return Update_OtherPlayersEntry.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<Update_PlayerInfosEntry>, I>>(base?: I): Update_PlayerInfosEntry {
+    return Update_PlayerInfosEntry.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Update_OtherPlayersEntry>, I>>(object: I): Update_OtherPlayersEntry {
-    const message = createBaseUpdate_OtherPlayersEntry();
+  fromPartial<I extends Exact<DeepPartial<Update_PlayerInfosEntry>, I>>(object: I): Update_PlayerInfosEntry {
+    const message = createBaseUpdate_PlayerInfosEntry();
     message.key = object.key ?? "";
     message.value = (object.value !== undefined && object.value !== null)
-      ? OtherPlayer.fromPartial(object.value)
+      ? PlayerInfo.fromPartial(object.value)
       : undefined;
     return message;
   },

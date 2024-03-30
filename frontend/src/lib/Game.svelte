@@ -1,9 +1,8 @@
 <script lang="ts">
-	import type { Message } from "$lib/messages";
-	import type { State } from "$lib/model";
-	import MainView from "$lib/views/MainView.svelte";
+	import { updateState, type State } from "$lib/model.svelte";
 	import { onDestroy } from "svelte";
 	import { toast } from "svelte-french-toast";
+	import { HiddenSet, Set, Start, Update } from "./pb/messages";
 
 	type Props = {
 		name: string;
@@ -14,23 +13,26 @@
 
 	let loading = $state(true);
 
+	// let game = $state<State>({
+	// 	player: {},
+	// 	drawDeck: [],
+	// 	foldDeck: [],
+	// 	onGoing: false,
+	// });
+
 	let game = $state<State>({
 		player: {},
-		drawDeck: [],
-		foldDeck: [],
-		onGoing: false,
-	});
+		drawDeck: HiddenSet.create(),
+		foldDeck: Set.create(),
+		hand: Set.create(),
+	})
 
 	$inspect(game)
 
 	let ws = new WebSocket(`ws://localhost:8000/ws?name=${name}`);
+	ws.binaryType = "arraybuffer";
 
-	let resolve: Function;
-	let reject: Function;
-	const promise = new Promise((res, rej) => {
-		resolve = res;
-		reject = rej;
-	});
+	const { promise, resolve, reject } = Promise.withResolvers();
 
 	toast.promise(promise, {
 		loading: "Connecting...",
@@ -39,28 +41,25 @@
 	});
 
 	ws.onmessage = (ev) => {
-		const msg: Message = JSON.parse(ev.data);
-		if (msg.type == "state") {
-			game = msg.data;
-		}
+		const msg = Update.decode(ev.data);
+		console.log(msg);
+		updateState(game, msg);
 	};
 
 	ws.onopen = () => {
 		loading = false;
-		resolve(1);
+		resolve(null);
 	};
 
 	ws.onclose = () => {
 		joined = false;
-		reject(1);
+		reject(null);
 	};
 
 	const start = () => {
-		const msg: Message = {
-			type: "control",
-			data: "start",
-		};
-		ws.send(JSON.stringify(msg));
+		const msg = Start.create();
+		const bytes = Start.encode(msg).finish();
+		ws.send(bytes);
 	};
 
 	onDestroy(() => {
@@ -70,7 +69,7 @@
 
 {#if loading}
 	<p>Loading...</p>
-{:else if !game.onGoing}
+{:else if !game.currentPlayer}
 	<div class="flex flex-col gap-4 w-80 rounded-xl border p-8">
 		<h1 class="text-3xl mb-4 text-center">Jolly 🃏</h1>
 
@@ -88,7 +87,7 @@
 		</div>
 	</div>
 {:else}
-	<MainView bind:game={game} {name} />
+	<!-- <MainView bind:game={game} {name} /> -->
 {/if}
 
 <style>

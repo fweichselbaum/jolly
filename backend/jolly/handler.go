@@ -1,7 +1,10 @@
 package jolly
 
 import (
+	"jolly/pb"
+
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 )
 
 type Map map[string]any
@@ -13,18 +16,18 @@ func Err(err string) Map {
 }
 
 type Handler struct {
-	State      *State             `json:"state"`
-	Clients    map[string]*Client `json:"clients"`
-	Register   chan *Client       `json:"-"`
-	Unregister chan *Client       `json:"-"`
-	Broadcast  chan *Message      `json:"-"`
+	State      *State
+	Clients    map[string]*Client
+	Register   chan *Client
+	Unregister chan *Client
+	HandleMsg  chan *Message
 }
 
 type Client struct {
-	Name    string          `json:"name"`
-	Conn    *websocket.Conn `json:"conn"`
-	Handler *Handler        `json:"-"`
-	Send    chan *Message   `json:"-"`
+	Name    string
+	Conn    *websocket.Conn
+	Handler *Handler
+	Send    chan []byte
 }
 
 func NewHandler() *Handler {
@@ -33,7 +36,7 @@ func NewHandler() *Handler {
 		Clients:    make(map[string]*Client),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Broadcast:  make(chan *Message),
+		HandleMsg:  make(chan *Message),
 	}
 }
 
@@ -42,7 +45,7 @@ func NewClient(name string, handler *Handler, conn *websocket.Conn) *Client {
 		Name:    name,
 		Handler: handler,
 		Conn:    conn,
-		Send:    make(chan *Message, 64),
+		Send:    make(chan []byte, 64),
 	}
 }
 
@@ -55,21 +58,11 @@ func (handler *Handler) Run() {
 		case client := <-handler.Unregister:
 			handler.UnregisterClient(client)
 
-		case msg := <-handler.Broadcast:
-			for _, client := range handler.Clients {
-				select {
-				case client.Send <- msg:
-				default:
-					close(client.Send)
-					delete(handler.Clients, client.Name)
-				}
-			}
+		case msg := <-handler.HandleMsg:
+			// TODO
+			_ = msg
 		}
 	}
-}
-
-func Msg(channel chan *Message, msg *Message) {
-	channel <- msg
 }
 
 func (handler *Handler) RegisterClient(client *Client) {
@@ -78,12 +71,7 @@ func (handler *Handler) RegisterClient(client *Client) {
 		handler.State.Player[client.Name] = NewPlayer(client.Name, handler)
 	}
 
-	go Msg(
-		handler.Broadcast,
-		&Message{
-			MsgType: "state",
-			Data:    handler.State,
-		})
+	handler.Broadcast()
 }
 
 func (handler *Handler) UnregisterClient(client *Client) {
@@ -98,55 +86,41 @@ func (handler *Handler) UnregisterClient(client *Client) {
 	}
 	close(client.Send)
 
-	go Msg(
-		handler.Broadcast,
-		&Message{
-			MsgType: "state",
-			Data:    handler.State,
-		})
+	handler.Broadcast()
 }
 
-// func (handler *Handler) BroadcastMove(move *Move) {
+func (handler *Handler) Broadcast() {
+	draw := handler.State.DrawDeck.Hide()
+	playerInfo := make(map[string]*pb.PlayerInfo)
 
-// 	// handler.HandleMove(move)
+	for _, client := range handler.Clients {
 
-// 	for _, player := range handler.State.Player {
-// 		select {
-// 		case player.Send <- move:
-// 		default:
-// 			close(player.Send)
-// 			delete(handler.State.Player, player.Name)
-// 		}
-// 	}
-// }
+		player := handler.State.Player[client.Name]
+		playerInfo[client.Name] = &pb.PlayerInfo{
+			HandSet:    player.Hand.Hide(),
+			PlayedSets: player.Cards,
+		}
+	}
 
-// 	var card *Card
-// 	state := handler.State
+	for _, client := range handler.Clients {
 
-// 	// FROM
-// 	if move.From.Owner == Game {
-// 		switch move.From.NR {
-// 		case DrawDeck:
-// 			state.DrawDeck, card = RemoveCard(state.DrawDeck, move.Card)
-// 		case FoldDeck:
-// 			state.FoldDeck, card = RemoveCard(state.FoldDeck, move.Card)
-// 		}
-// 	} else {
-// 		f := move.From
-// 		state.Player[f.Owner].Cards[f.NR], card = RemoveCard(
-// 			state.Player[f.Owner].Cards[f.NR],
-// 			move.Card,
-// 		)
-// 	}
+		update := pb.Update{
+			DrawSet:     draw,
+			FoldSet:     handler.State.FoldDeck,
+			HandSet:     handler.State.Player[client.Name].Hand,
+			PlayerInfos: playerInfo,
+		}
 
-// 	// TO
-// 	if move.To.Owner == Game {
-// 		state.FoldDeck = append(state.FoldDeck, card)
-// 	} else {
-// 		t := move.To
-// 		state.Player[t.Owner].Cards[t.NR] = append(
-// 			state.Player[t.Owner].Cards[t.NR],
-// 			card,
-// 		)
-// 	}
-// }
+		msg, err := proto.Marshal(&update)
+		if err != nil {
+			continue
+		}
+
+		select {
+		case client.Send <- msg:
+		default:
+			close(client.Send)
+			delete(handler.Clients, client.Name)
+		}
+	}
+}
