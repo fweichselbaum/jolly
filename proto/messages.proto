@@ -2,16 +2,6 @@ syntax = "proto3";
 
 option go_package = "pb/";
 
-// TYPES
-
-enum Actions {
-    Action_Draw = 0;
-    Action_DrawFolded = 1;
-    Action_Fold = 2;
-    Action_PlaySet = 3;
-    Action_PlaySingleCard = 4;
-}
-
 // MODEL
 
 enum Symbol {
@@ -85,5 +75,6 @@ message Update {
     Set foldSet = 2;
     Set handSet = 3;
     map<string, PlayerInfo> playerInfos = 4;
-    optional string currentPlayer = 5;
+    string currentPlayer = 5;
+    bool onGoing = 6;
 }

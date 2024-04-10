@@ -1,64 +1,105 @@
 package jolly
 
-// func (state *State) Start() {
+import (
+	"fmt"
+	"jolly/pb"
+	"math/rand"
+	"slices"
 
-// 	id := 0
+	"golang.org/x/exp/maps"
+)
 
-// 	for _sym := range 4 {
-// 		var sym string
-// 		switch {
-// 		case _sym == 0:
-// 			sym = Club
-// 		case _sym == 1:
-// 			sym = Diamond
-// 		case _sym == 2:
-// 			sym = Heart
-// 		case _sym == 3:
-// 			sym = Spade
-// 		}
+var symbols = [...]pb.Symbol{
+	pb.Symbol_Clubs,
+	pb.Symbol_Diamonds,
+	pb.Symbol_Hearts,
+	pb.Symbol_Spades,
+}
 
-// 		for val := 2; val <= Ace; val++ {
-// 			state.DrawDeck = append(state.DrawDeck, &Card{Id: id, Value: val, Symbol: sym})
-// 			id++
-// 			state.DrawDeck = append(state.DrawDeck, &Card{Id: id, Value: val, Symbol: sym})
-// 			id++
-// 		}
+func (state *State) DealCards() {
+	for _, sym := range symbols {
+		var val int32
+		for val = pb.Value_Two; val <= pb.Value_Ace; val++ {
+			state.DrawDeck.Push(&pb.Card{
+				Symbol: sym,
+				Value:  val,
+			})
+		}
+	}
 
-// 		state.DrawDeck = append(state.DrawDeck, &Card{Id: id, Value: Joker, Symbol: sym})
-// 		id++
-// 	}
+	state.DrawDeck.Shuffle()
 
-// 	rand.Shuffle(len(state.DrawDeck), func(i, j int) {
-// 		c := state.DrawDeck[i]
-// 		state.DrawDeck[i] = state.DrawDeck[j]
-// 		state.DrawDeck[j] = c
-// 	})
+	for _, player := range state.Player {
+		for range 13 {
+			player.Hand.Push(state.DrawDeck.Pop())
+		}
+		player.Hand.Sort()
+	}
+}
 
-// 	for _, player := range state.Player {
-// 		player.Cards = make([][]*Card, 1)
-// 		player.Cards[HandCards] = make([]*Card, 13)
-// 		for i := range 13 {
-// 			state.DrawDeck, player.Cards[HandCards][i] = PopCard(state.DrawDeck)
-// 		}
-// 		slices.SortStableFunc(player.Cards[HandCards], func(c1, c2 *Card) int {
-// 			if c1.Value != c2.Value {
-// 				return c1.Value - c2.Value
-// 			}
-// 			s1 := c1.Symbol[0]
-// 			s2 := c2.Symbol[0]
-// 			return int(s1 - s2)
-// 		})
-// 	}
-// 	state.OnGoing = true
-// }
+func (state *State) NextTurn() {
+	playerNames := maps.Keys(state.Player)
+	idx := slices.Index(playerNames, state.CurrentPlayer)
+	idx = (idx + 1) % len(playerNames)
+	state.CurrentPlayer = playerNames[idx]
+	state.drawDone = false
+}
 
-// func PopCard(s []*Card) ([]*Card, *Card) {
-// 	index := len(s) - 1
-// 	c := s[index]
-// 	return s[:index], c
-// }
+func (state *State) Start() error {
+	if state.OnGoing {
+		return fmt.Errorf("game is already started")
+	}
+	playerNames := maps.Keys(state.Player)
+	state.OnGoing = true
+	state.CurrentPlayer = playerNames[rand.Intn(len(playerNames))]
+	state.DealCards()
+	return nil
+}
 
-// func RemoveCard(s []*Card, index int) ([]*Card, *Card) {
-// 	c := s[index]
-// 	return append(s[:index], s[index+1:]...), c
-// }
+func (state *State) Draw(player *Player) error {
+	if state.drawDone {
+		return fmt.Errorf("draw is already done")
+	}
+	card := state.DrawDeck.Pop()
+	player.Hand.Push(card)
+	state.drawDone = true
+	return nil
+}
+
+func (state *State) DrawFolded(player *Player, action *pb.DrawFolded) error {
+	if state.drawDone {
+		return fmt.Errorf("draw is already done")
+	}
+	if len(state.FoldDeck.Cards) < int(action.NumOfCards) {
+		return fmt.Errorf("not enough cards in fold deck")
+	}
+	for range action.NumOfCards {
+		card := state.FoldDeck.Pop()
+		player.Hand.Push(card)
+	}
+	state.drawDone = true
+	return nil
+}
+
+func (state *State) Fold(player *Player, action *pb.Fold) error {
+	if !state.drawDone {
+		return fmt.Errorf("draw is not done")
+	}
+	if len(player.Hand.Cards) == 0 {
+		return fmt.Errorf("no cards to fold")
+	}
+	card := player.Hand.RemoveCard(action.Card)
+	if card == nil {
+		return fmt.Errorf("card is not valid")
+	}
+	state.FoldDeck.Push(card)
+	return nil
+}
+
+func (state *State) PlaySet(player *Player, action *pb.PlaySet) error {
+	return fmt.Errorf("todo") // TODO
+}
+
+func (state *State) PlaySingleCard(player *Player, action *pb.PlaySingleCard) error {
+	return fmt.Errorf("todo") // TODO
+}

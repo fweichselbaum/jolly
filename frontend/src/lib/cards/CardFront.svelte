@@ -3,6 +3,10 @@
 
     type Props = { card: Card };
 
+    const { card }: Props = $props();
+
+    const letter = $derived(cardValue(card));
+
     function cardValue(card: Card): string {
         switch (card.value) {
             case 11: return "J";
@@ -12,9 +16,6 @@
         }
         return card.value.toString();
     }
-
-    const { card }: Props = $props();
-    const letter = $derived(cardValue(card));
 </script>
 
 <div

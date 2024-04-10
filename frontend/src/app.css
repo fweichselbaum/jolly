@@ -1,43 +1,8 @@
-/* *,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-}
-
-img,
-picture,
-svg,
-video {
-  display: block;
-  max-width: 100%;
-}
-
-input,
-textarea,
-button,
-select {
-  font: inherit;
-}
-
-html {
-  color-scheme: dark light;
-}
-
-body {
-  min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
-} */
-
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
-
 html, body, #app {
 	/* min-height: 100vh; */
 	height: 100%;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

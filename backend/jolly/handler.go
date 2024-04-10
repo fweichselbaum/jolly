@@ -1,6 +1,7 @@
 package jolly
 
 import (
+	"fmt"
 	"jolly/pb"
 
 	"github.com/gorilla/websocket"
@@ -16,11 +17,11 @@ func Err(err string) Map {
 }
 
 type Handler struct {
-	State      *State
-	Clients    map[string]*Client
-	Register   chan *Client
-	Unregister chan *Client
-	HandleMsg  chan *Message
+	State        *State
+	Clients      map[string]*Client
+	Register     chan *Client
+	Unregister   chan *Client
+	HandleAction chan *pb.Action
 }
 
 type Client struct {
@@ -32,11 +33,11 @@ type Client struct {
 
 func NewHandler() *Handler {
 	return &Handler{
-		State:      NewState(),
-		Clients:    make(map[string]*Client),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		HandleMsg:  make(chan *Message),
+		State:        NewState(),
+		Clients:      make(map[string]*Client),
+		Register:     make(chan *Client),
+		Unregister:   make(chan *Client),
+		HandleAction: make(chan *pb.Action),
 	}
 }
 
@@ -51,6 +52,7 @@ func NewClient(name string, handler *Handler, conn *websocket.Conn) *Client {
 
 func (handler *Handler) Run() {
 	for {
+		var err error
 		select {
 		case client := <-handler.Register:
 			handler.RegisterClient(client)
@@ -58,9 +60,13 @@ func (handler *Handler) Run() {
 		case client := <-handler.Unregister:
 			handler.UnregisterClient(client)
 
-		case msg := <-handler.HandleMsg:
-			// TODO
-			_ = msg
+		case action := <-handler.HandleAction:
+			err = handler.ProcessAction(action)
+		}
+		if err != nil {
+			// TODO send error message
+		} else {
+			handler.Broadcast()
 		}
 	}
 }
@@ -70,8 +76,6 @@ func (handler *Handler) RegisterClient(client *Client) {
 	if !handler.State.OnGoing {
 		handler.State.Player[client.Name] = NewPlayer(client.Name, handler)
 	}
-
-	handler.Broadcast()
 }
 
 func (handler *Handler) UnregisterClient(client *Client) {
@@ -85,11 +89,10 @@ func (handler *Handler) UnregisterClient(client *Client) {
 		delete(handler.State.Player, client.Name)
 	}
 	close(client.Send)
-
-	handler.Broadcast()
 }
 
 func (handler *Handler) Broadcast() {
+
 	draw := handler.State.DrawDeck.Hide()
 	playerInfo := make(map[string]*pb.PlayerInfo)
 
@@ -105,10 +108,12 @@ func (handler *Handler) Broadcast() {
 	for _, client := range handler.Clients {
 
 		update := pb.Update{
-			DrawSet:     draw,
-			FoldSet:     handler.State.FoldDeck,
-			HandSet:     handler.State.Player[client.Name].Hand,
-			PlayerInfos: playerInfo,
+			DrawSet:       draw,
+			FoldSet:       handler.State.FoldDeck,
+			HandSet:       handler.State.Player[client.Name].Hand,
+			PlayerInfos:   playerInfo,
+			CurrentPlayer: handler.State.CurrentPlayer,
+			OnGoing:       handler.State.OnGoing,
 		}
 
 		msg, err := proto.Marshal(&update)
@@ -123,4 +128,32 @@ func (handler *Handler) Broadcast() {
 			delete(handler.Clients, client.Name)
 		}
 	}
+}
+
+func (handler *Handler) ProcessAction(action *pb.Action) error {
+	player, ok := handler.State.Player[action.Player]
+	if !ok {
+		return fmt.Errorf("unknown player")
+	}
+
+	if action.GetStart() == nil && action.Player != handler.State.CurrentPlayer {
+		return fmt.Errorf("%s is not the active player", action.Player)
+	}
+
+	var err error = nil
+	switch action.Action.(type) {
+	case *pb.Action_Start:
+		err = handler.State.Start()
+	case *pb.Action_Draw:
+		err = handler.State.Draw(player)
+	case *pb.Action_DrawFolded:
+		err = handler.State.DrawFolded(player, action.GetDrawFolded())
+	case *pb.Action_Fold:
+		err = handler.State.Fold(player, action.GetFold())
+	case *pb.Action_PlaySet:
+		err = handler.State.PlaySet(player, action.GetPlaySet())
+	case *pb.Action_PlaySingleCard:
+		err = handler.State.PlaySingleCard(player, action.GetPlaySingleCard())
+	}
+	return err
 }

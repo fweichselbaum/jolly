@@ -1,9 +1,12 @@
 package jolly
 
 import (
+	"jolly/pb"
+	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -30,10 +33,14 @@ func (client *Client) ReadLoop() {
 		if err != nil {
 			break
 		}
-		client.Handler.HandleMsg <- &Message{
-			player:  client.Name,
-			content: bytes,
+		action := &pb.Action{}
+		err = proto.Unmarshal(bytes, action)
+		if err != nil {
+			break
 		}
+		log.Println("RECIEVE")
+
+		client.Handler.HandleAction <- action
 	}
 }
 
@@ -57,6 +64,7 @@ func (client *Client) WriteLoop() {
 				if err != nil {
 					break
 				}
+				log.Println("SEND")
 			}
 		case <-ticker.C:
 			client.Conn.SetWriteDeadline(time.Now().Add(writeWait))

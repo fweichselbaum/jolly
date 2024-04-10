@@ -3,57 +3,6 @@ import * as _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "";
 
-export enum Actions {
-  Action_Draw = 0,
-  Action_DrawFolded = 1,
-  Action_Fold = 2,
-  Action_PlaySet = 3,
-  Action_PlaySingleCard = 4,
-  UNRECOGNIZED = -1,
-}
-
-export function actionsFromJSON(object: any): Actions {
-  switch (object) {
-    case 0:
-    case "Action_Draw":
-      return Actions.Action_Draw;
-    case 1:
-    case "Action_DrawFolded":
-      return Actions.Action_DrawFolded;
-    case 2:
-    case "Action_Fold":
-      return Actions.Action_Fold;
-    case 3:
-    case "Action_PlaySet":
-      return Actions.Action_PlaySet;
-    case 4:
-    case "Action_PlaySingleCard":
-      return Actions.Action_PlaySingleCard;
-    case -1:
-    case "UNRECOGNIZED":
-    default:
-      return Actions.UNRECOGNIZED;
-  }
-}
-
-export function actionsToJSON(object: Actions): string {
-  switch (object) {
-    case Actions.Action_Draw:
-      return "Action_Draw";
-    case Actions.Action_DrawFolded:
-      return "Action_DrawFolded";
-    case Actions.Action_Fold:
-      return "Action_Fold";
-    case Actions.Action_PlaySet:
-      return "Action_PlaySet";
-    case Actions.Action_PlaySingleCard:
-      return "Action_PlaySingleCard";
-    case Actions.UNRECOGNIZED:
-    default:
-      return "UNRECOGNIZED";
-  }
-}
-
 export enum Symbol {
   Clubs = 0,
   Diamonds = 1,
@@ -158,7 +107,8 @@ export interface Update {
   foldSet: Set | undefined;
   handSet: Set | undefined;
   playerInfos: { [key: string]: PlayerInfo };
-  currentPlayer?: string | undefined;
+  currentPlayer: string;
+  onGoing: boolean;
 }
 
 export interface Update_PlayerInfosEntry {
@@ -972,7 +922,14 @@ export const PlaySingleCard = {
 };
 
 function createBaseUpdate(): Update {
-  return { drawSet: undefined, foldSet: undefined, handSet: undefined, playerInfos: {}, currentPlayer: undefined };
+  return {
+    drawSet: undefined,
+    foldSet: undefined,
+    handSet: undefined,
+    playerInfos: {},
+    currentPlayer: "",
+    onGoing: false,
+  };
 }
 
 export const Update = {
@@ -989,8 +946,11 @@ export const Update = {
     Object.entries(message.playerInfos).forEach(([key, value]) => {
       Update_PlayerInfosEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
     });
-    if (message.currentPlayer !== undefined) {
+    if (message.currentPlayer !== "") {
       writer.uint32(42).string(message.currentPlayer);
+    }
+    if (message.onGoing !== false) {
+      writer.uint32(48).bool(message.onGoing);
     }
     return writer;
   },
@@ -1040,6 +1000,13 @@ export const Update = {
 
           message.currentPlayer = reader.string();
           continue;
+        case 6:
+          if (tag !== 48) {
+            break;
+          }
+
+          message.onGoing = reader.bool();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1060,7 +1027,8 @@ export const Update = {
           return acc;
         }, {})
         : {},
-      currentPlayer: isSet(object.currentPlayer) ? globalThis.String(object.currentPlayer) : undefined,
+      currentPlayer: isSet(object.currentPlayer) ? globalThis.String(object.currentPlayer) : "",
+      onGoing: isSet(object.onGoing) ? globalThis.Boolean(object.onGoing) : false,
     };
   },
 
@@ -1084,8 +1052,11 @@ export const Update = {
         });
       }
     }
-    if (message.currentPlayer !== undefined) {
+    if (message.currentPlayer !== "") {
       obj.currentPlayer = message.currentPlayer;
+    }
+    if (message.onGoing !== false) {
+      obj.onGoing = message.onGoing;
     }
     return obj;
   },
@@ -1113,7 +1084,8 @@ export const Update = {
       },
       {},
     );
-    message.currentPlayer = object.currentPlayer ?? undefined;
+    message.currentPlayer = object.currentPlayer ?? "";
+    message.onGoing = object.onGoing ?? false;
     return message;
   },
 };

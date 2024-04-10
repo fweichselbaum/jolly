@@ -1,14 +1,12 @@
 <script lang="ts">
-	let dark = $state(true);
-	const root = document.documentElement;
+	let dark = $state<boolean>(true);
 
-	$effect(() => {
-		if (dark) {
-			root.setAttribute("data-theme", "customDark");
-		} else {
-			root.setAttribute("data-theme", "customLight");
-		}
-	});
+	$effect(() =>
+		document.documentElement.setAttribute(
+			"data-theme",
+			dark ? "customDark" : "customLight",
+		),
+	);
 </script>
 
 <label class="swap swap-rotate">

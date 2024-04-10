@@ -8,6 +8,7 @@ export type State = {
 	foldDeck: Set;
 	hand: Set;
 	currentPlayer?: string;
+	onGoing: boolean;
 };
 
 export function updateState(state: State, update: Update): void {
@@ -17,4 +18,5 @@ export function updateState(state: State, update: Update): void {
 	state.drawDeck = update.drawSet;
 	state.foldDeck = update.foldSet;
 	state.hand = update.handSet;
+	state.onGoing = update.onGoing;
 }

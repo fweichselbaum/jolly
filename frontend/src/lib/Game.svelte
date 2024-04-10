@@ -1,38 +1,36 @@
 <script lang="ts">
-	import { updateState, type State } from "$lib/model.svelte";
+	import { updateState, type State } from "$lib/model";
+	import { Action, HiddenSet, Set, Start, Update } from "$lib/pb/messages";
+	import MainView from "$lib/views/MainView.svelte";
 	import { onDestroy } from "svelte";
 	import { toast } from "svelte-french-toast";
-	import { HiddenSet, Set, Start, Update } from "./pb/messages";
 
 	type Props = {
 		name: string;
-		joined: boolean;
+		leave: () => void;
 	};
 
-	let { name, joined } = $props<Props>();
+	let { name, leave }: Props = $props();
 
-	let loading = $state(true);
-
-	// let game = $state<State>({
-	// 	player: {},
-	// 	drawDeck: [],
-	// 	foldDeck: [],
-	// 	onGoing: false,
-	// });
+	let loading = $state<boolean>(true);
 
 	let game = $state<State>({
 		player: {},
 		drawDeck: HiddenSet.create(),
 		foldDeck: Set.create(),
 		hand: Set.create(),
-	})
+		onGoing: false,
+	});
 
-	$inspect(game)
-
-	let ws = new WebSocket(`ws://localhost:8000/ws?name=${name}`);
+	const ws = new WebSocket(`ws://localhost:8000/ws?name=${name}`);
 	ws.binaryType = "arraybuffer";
 
-	const { promise, resolve, reject } = Promise.withResolvers();
+	let resolve: Function;
+	let reject: Function;
+	const promise = new Promise((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
 
 	toast.promise(promise, {
 		loading: "Connecting...",
@@ -40,27 +38,29 @@
 		error: "Connection failed",
 	});
 
-	ws.onmessage = (ev) => {
-		const msg = Update.decode(ev.data);
-		console.log(msg);
+	ws.onmessage = (ev: MessageEvent<ArrayBuffer>) => {
+		const msg = Update.decode(new Uint8Array(ev.data));
+		console.log(msg)
 		updateState(game, msg);
 	};
 
 	ws.onopen = () => {
 		loading = false;
-		resolve(null);
+		resolve(1);
 	};
 
 	ws.onclose = () => {
-		joined = false;
-		reject(null);
+		reject(1);
+		leave();
 	};
 
-	const start = () => {
-		const msg = Start.create();
-		const bytes = Start.encode(msg).finish();
-		ws.send(bytes);
-	};
+	function start() {
+		const action: Action = {
+			player: name,
+			start: Start.create(),
+		}
+		ws.send(Action.encode(action).finish());
+	}
 
 	onDestroy(() => {
 		ws.close();
@@ -69,25 +69,23 @@
 
 {#if loading}
 	<p>Loading...</p>
-{:else if !game.currentPlayer}
+{:else if !game.onGoing}
 	<div class="flex flex-col gap-4 w-80 rounded-xl border p-8">
 		<h1 class="text-3xl mb-4 text-center">Jolly 🃏</h1>
 
 		<p>Connected player:</p>
 		<ul class="list-disc pl-8">
 			{#each Object.keys(game.player) as p (p)}
-				<li>
-					<span class:highlighted={p == name}>{p}</span>
-				</li>
+				<li class:highlighted={p == name}>{p}</li>
 			{/each}
 		</ul>
 		<div class="flex justify-between">
-			<button class="btn" on:click={() => (joined = false)}>Leave</button>
+			<button class="btn" on:click={leave}>Leave</button>
 			<button class="btn btn-primary" on:click={start}>Start</button>
 		</div>
 	</div>
 {:else}
-	<!-- <MainView bind:game={game} {name} /> -->
+	<MainView bind:game {name} />
 {/if}
 
 <style>

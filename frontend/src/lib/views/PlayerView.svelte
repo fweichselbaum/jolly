@@ -1,22 +1,13 @@
 <script lang="ts">
-	import Set from "$lib/Set.svelte";
-	import { type Player } from "$lib/model";
+    import type { PlayerInfo } from "$lib/pb/messages";
 
-	type Props = {
-		player: Player;
-	};
+    type Props = {
+        playerName: string;
+        playerInfo: PlayerInfo;
+    }
 
-	let { player } = $props<Props>();
+    const { playerName, playerInfo = $bindable() }: Props = $props();
 
 </script>
 
-<div class="flex flex-col gap-2 items-center justify-start">
-	<i>Player View of {player.name}</i>
-
-	<div class="flex gap-2">
-	{#each player.cards as set, i (i)} 
-		{#if i != 0}
-			<Set bind:cards={set} />
-		{/if}
-	{/each}</div>
-</div>
+<p>{playerName}</p>
