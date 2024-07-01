@@ -23,5 +23,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "svelte-dnd-action": "^0.9.42"
+  }
 }

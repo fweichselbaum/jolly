@@ -17,13 +17,16 @@ var symbols = [...]pb.Symbol{
 }
 
 func (state *State) DealCards() {
+	var id int32 = 0
 	for _, sym := range symbols {
 		var val int32
 		for val = pb.Value_Two; val <= pb.Value_Ace; val++ {
 			state.DrawDeck.Push(&pb.Card{
+				Id:     id,
 				Symbol: sym,
 				Value:  val,
 			})
+			id++
 		}
 	}
 

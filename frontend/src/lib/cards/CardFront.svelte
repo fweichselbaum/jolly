@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Symbol, type Card } from "$lib/pb/messages";
-
+    
     type Props = { card: Card };
 
     const { card }: Props = $props();
@@ -23,7 +23,7 @@
 relative inline-flex flex-col items-center justify-center
 text-3xl font-bold select-none shadow-xl"
     class:striped={card.owner}
-    title={card.owner}
+    title={`${card.id}: ${card.owner}`}
 >
     {#if card.value == 1}
         <img src="/joker.png" alt="Joker" />

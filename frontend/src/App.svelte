@@ -6,6 +6,9 @@
 	let name = $state<string>("");
 	let entered = $state<boolean>(false);
 
+	function enter() {
+		entered = true;
+	}
 	function leave() {
 		entered = false;
 	}
@@ -17,7 +20,6 @@
 </div>
 
 <!-- svelte-ignore a11y-autofocus -->
-
 <main class="w-full h-full grid place-items-center">
 	{#if entered}
 		<Game {name} {leave} />
@@ -27,9 +29,7 @@
 			<p>Join here:</p>
 			<form
 				class="flex flex-col gap-4 w-full"
-				on:submit|preventDefault={() => {
-					entered = true;
-				}}
+				on:submit|preventDefault={() => enter()}
 			>
 				<input
 					autofocus

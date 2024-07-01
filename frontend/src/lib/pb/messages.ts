@@ -49,6 +49,7 @@ export function symbolToJSON(object: Symbol): string {
 }
 
 export interface Card {
+  id: number;
   value: number;
   symbol: Symbol;
   owner?: string | undefined;
@@ -117,19 +118,22 @@ export interface Update_PlayerInfosEntry {
 }
 
 function createBaseCard(): Card {
-  return { value: 0, symbol: 0, owner: undefined };
+  return { id: 0, value: 0, symbol: 0, owner: undefined };
 }
 
 export const Card = {
   encode(message: Card, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.id !== 0) {
+      writer.uint32(8).int32(message.id);
+    }
     if (message.value !== 0) {
-      writer.uint32(8).int32(message.value);
+      writer.uint32(16).int32(message.value);
     }
     if (message.symbol !== 0) {
-      writer.uint32(16).int32(message.symbol);
+      writer.uint32(24).int32(message.symbol);
     }
     if (message.owner !== undefined) {
-      writer.uint32(26).string(message.owner);
+      writer.uint32(34).string(message.owner);
     }
     return writer;
   },
@@ -146,17 +150,24 @@ export const Card = {
             break;
           }
 
-          message.value = reader.int32();
+          message.id = reader.int32();
           continue;
         case 2:
           if (tag !== 16) {
             break;
           }
 
-          message.symbol = reader.int32() as any;
+          message.value = reader.int32();
           continue;
         case 3:
-          if (tag !== 26) {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.symbol = reader.int32() as any;
+          continue;
+        case 4:
+          if (tag !== 34) {
             break;
           }
 
@@ -173,6 +184,7 @@ export const Card = {
 
   fromJSON(object: any): Card {
     return {
+      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
       value: isSet(object.value) ? globalThis.Number(object.value) : 0,
       symbol: isSet(object.symbol) ? symbolFromJSON(object.symbol) : 0,
       owner: isSet(object.owner) ? globalThis.String(object.owner) : undefined,
@@ -181,6 +193,9 @@ export const Card = {
 
   toJSON(message: Card): unknown {
     const obj: any = {};
+    if (message.id !== 0) {
+      obj.id = Math.round(message.id);
+    }
     if (message.value !== 0) {
       obj.value = Math.round(message.value);
     }
@@ -198,6 +213,7 @@ export const Card = {
   },
   fromPartial<I extends Exact<DeepPartial<Card>, I>>(object: I): Card {
     const message = createBaseCard();
+    message.id = object.id ?? 0;
     message.value = object.value ?? 0;
     message.symbol = object.symbol ?? 0;
     message.owner = object.owner ?? undefined;

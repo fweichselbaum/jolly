@@ -8,14 +8,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Map map[string]any
-
-func Err(err string) Map {
-	return Map{
-		"error": err,
-	}
-}
-
 type Handler struct {
 	State        *State
 	Clients      map[string]*Client
