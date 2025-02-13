@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option go_package = "pb/";
+
+// MODEL
+
+enum Symbol {
+    Clubs = 0;
+    Diamonds = 1;
+    Hearts = 2;
+    Spades = 3;
+}
+
+message Card {
+    int32 id = 1;
+    int32 value = 2;
+    Symbol symbol = 3;
+    optional string owner = 4;
+}
+
+message Set {
+    repeated Card cards = 1;
+}
+
+message HiddenSet {
+    int32 numOfCards = 1;
+}
+
+message PlayerInfo {
+    HiddenSet handSet = 1;
+    repeated Set playedSets = 2;
+}
+
+// ACTIONS
+
+message Action {
+    string player = 1;
+    oneof action {
+        Start start = 2;
+        Draw draw = 3;
+        DrawFolded drawFolded = 4;
+        Fold fold = 5;
+        PlaySet playSet = 6;
+        PlaySingleCard playSingleCard = 7;
+    }
+}
+
+message Start {}
+
+message Draw {}
+
+message DrawFolded {
+    int32 numOfCards = 1;
+}
+
+message Fold {
+    Card card = 1;
+}
+
+message PlaySet {
+    Set cards = 1;
+}
+
+message PlaySingleCard {
+    string name = 1;
+    int32 numOfSet = 2;
+    Card card = 3;
+    optional bool jokerOnLow = 4;
+}
+
+// UPDATE
+
+message Update {
+    HiddenSet drawSet = 1;
+    Set foldSet = 2;
+    Set handSet = 3;
+    map<string, PlayerInfo> playerInfos = 4;
+    string currentPlayer = 5;
+    bool onGoing = 6;
+}
